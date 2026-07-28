@@ -1,15 +1,19 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
 
 class Task {
-    private int id;
-    private String name;
-    private String description;
-    private String priority;
-    private String dueDate;
-    private boolean completed;
+    int id;
+    String name;
+    String description;
+    String priority;
+    String dueDate;
+    boolean completed;
 
-    public Task(int id, String name, String description, String priority, String dueDate, boolean completed) {
+    public Task(int id, String name, String description,
+                String priority, String dueDate, boolean completed) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -18,253 +22,278 @@ class Task {
         this.completed = completed;
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getPriority() {
-        return priority;
-    }
-
-    public boolean isCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
-    }
-
-    public void display() {
-        System.out.println("----------------------------------------");
-        System.out.println("Task ID      : " + id);
-        System.out.println("Task Name    : " + name);
-        System.out.println("Description  : " + description);
-        System.out.println("Priority     : " + priority);
-        System.out.println("Due Date     : " + dueDate);
-        System.out.println("Status       : " + (completed ? "Completed" : "Pending"));
-    }
-
     @Override
     public String toString() {
-        return id + "," + name + "," + description + "," + priority + "," + dueDate + "," + completed;
+        return id + "," + name + "," + description + "," +
+                priority + "," + dueDate + "," + completed;
     }
 }
 
-public class Main {
+public class Main extends JFrame {
 
-    static ArrayList<Task> tasks = new ArrayList<>();
-    static Scanner sc = new Scanner(System.in);
-    static final String FILE_NAME = "tasks.txt";
+    JTextField txtId = new JTextField();
+    JTextField txtName = new JTextField();
+    JTextField txtDesc = new JTextField();
+    JTextField txtPriority = new JTextField();
+    JTextField txtDate = new JTextField();
+    JTextField txtSearch = new JTextField();
 
-    public static void main(String[] args) {
+    JButton btnAdd = new JButton("Add Task");
+    JButton btnDelete = new JButton("Delete");
+    JButton btnComplete = new JButton("Complete");
+    JButton btnSearch = new JButton("Search");
+    JButton btnRefresh = new JButton("Refresh");
+
+    DefaultTableModel model;
+
+    ArrayList<Task> tasks = new ArrayList<>();
+
+    final String FILE_NAME = "tasks.txt";
+
+    public Main() {
+
+        setTitle("Smart To-Do List Manager");
+        setSize(900,550);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        JPanel input = new JPanel(new GridLayout(6,2,5,5));
+
+        input.add(new JLabel("Task ID"));
+        input.add(txtId);
+
+        input.add(new JLabel("Task Name"));
+        input.add(txtName);
+
+        input.add(new JLabel("Description"));
+        input.add(txtDesc);
+
+        input.add(new JLabel("Priority"));
+        input.add(txtPriority);
+
+        input.add(new JLabel("Due Date"));
+        input.add(txtDate);
+
+        input.add(btnAdd);
+
+        input.add(btnRefresh);
+
+        add(input,BorderLayout.NORTH);
+
+        model = new DefaultTableModel();
+
+        model.addColumn("ID");
+        model.addColumn("Name");
+        model.addColumn("Description");
+        model.addColumn("Priority");
+        model.addColumn("Due Date");
+        model.addColumn("Status");
+
+        JTable table = new JTable(model);
+
+        JScrollPane pane = new JScrollPane(table);
+
+        add(pane,BorderLayout.CENTER);
+
+        JPanel bottom = new JPanel(new GridLayout(1,4,5,5));
+
+        bottom.add(btnDelete);
+        bottom.add(btnComplete);
+        bottom.add(txtSearch);
+        bottom.add(btnSearch);
+
+        add(bottom,BorderLayout.SOUTH);
 
         loadTasks();
+        refreshTable();
 
-        while (true) {
+        btnAdd.addActionListener(e -> {
 
-            System.out.println("\n==============================");
-            System.out.println(" SMART TO-DO LIST MANAGER");
-            System.out.println("==============================");
-            System.out.println("1. Add Task");
-            System.out.println("2. View Tasks");
-            System.out.println("3. Delete Task");
-            System.out.println("4. Complete Task");
-            System.out.println("5. Search Task");
-            System.out.println("6. Exit");
-            System.out.print("Enter Choice: ");
+            try{
 
-            int choice = sc.nextInt();
-            sc.nextLine();
+                int id=Integer.parseInt(txtId.getText());
 
-            switch (choice) {
+                String name=txtName.getText();
+                String desc=txtDesc.getText();
+                String priority=txtPriority.getText();
+                String date=txtDate.getText();
 
-                case 1:
-                    addTask();
-                    break;
+                tasks.add(new Task(id,name,desc,priority,date,false));
 
-                case 2:
-                    viewTasks();
-                    break;
-
-                case 3:
-                    deleteTask();
-                    break;
-
-                case 4:
-                    completeTask();
-                    break;
-
-                case 5:
-                    searchTask();
-                    break;
-
-                case 6:
-                    saveTasks();
-                    System.out.println("Thank You!");
-                    System.exit(0);
-
-                default:
-                    System.out.println("Invalid Choice!");
-            }
-        }
-    }
-
-    static void addTask() {
-
-        System.out.print("Task ID: ");
-        int id = sc.nextInt();
-        sc.nextLine();
-
-        System.out.print("Task Name: ");
-        String name = sc.nextLine();
-
-        System.out.print("Description: ");
-        String desc = sc.nextLine();
-
-        System.out.print("Priority (High/Medium/Low): ");
-        String priority = sc.nextLine();
-
-        System.out.print("Due Date: ");
-        String date = sc.nextLine();
-
-        Task task = new Task(id, name, desc, priority, date, false);
-
-        tasks.add(task);
-
-        saveTasks();
-
-        System.out.println("Task Added Successfully!");
-    }
-
-    static void viewTasks() {
-
-        if (tasks.isEmpty()) {
-            System.out.println("No Tasks Available.");
-            return;
-        }
-
-        for (Task t : tasks) {
-            t.display();
-        }
-    }
-
-    static void deleteTask() {
-
-        System.out.print("Enter Task ID: ");
-        int id = sc.nextInt();
-
-        Iterator<Task> iterator = tasks.iterator();
-
-        while (iterator.hasNext()) {
-
-            Task t = iterator.next();
-
-            if (t.getId() == id) {
-
-                iterator.remove();
                 saveTasks();
+                refreshTable();
 
-                System.out.println("Task Deleted Successfully!");
+                clearFields();
+
+                JOptionPane.showMessageDialog(this,"Task Added!");
+
+            }catch(Exception ex){
+
+                JOptionPane.showMessageDialog(this,"Invalid Input");
+            }
+
+        });
+
+        btnDelete.addActionListener(e->{
+
+            int row=table.getSelectedRow();
+
+            if(row==-1){
+
+                JOptionPane.showMessageDialog(this,"Select a Task");
                 return;
             }
-        }
 
-        System.out.println("Task Not Found!");
-    }
+            tasks.remove(row);
 
-    static void completeTask() {
+            saveTasks();
 
-        System.out.print("Enter Task ID: ");
-        int id = sc.nextInt();
+            refreshTable();
 
-        for (Task t : tasks) {
+        });
 
-            if (t.getId() == id) {
+        btnComplete.addActionListener(e->{
 
-                t.setCompleted(true);
-                saveTasks();
+            int row=table.getSelectedRow();
 
-                System.out.println("Task Completed!");
+            if(row==-1){
+
+                JOptionPane.showMessageDialog(this,"Select a Task");
                 return;
             }
-        }
 
-        System.out.println("Task Not Found!");
-    }
+            tasks.get(row).completed=true;
 
-    static void searchTask() {
+            saveTasks();
 
-        System.out.print("Enter Task Name: ");
-        String keyword = sc.nextLine();
+            refreshTable();
 
-        boolean found = false;
+        });
 
-        for (Task t : tasks) {
+        btnSearch.addActionListener(e->{
 
-            if (t.getName().toLowerCase().contains(keyword.toLowerCase())) {
+            String key=txtSearch.getText().toLowerCase();
 
-                t.display();
-                found = true;
+            model.setRowCount(0);
+
+            for(Task t:tasks){
+
+                if(t.name.toLowerCase().contains(key)){
+
+                    model.addRow(new Object[]{
+                            t.id,
+                            t.name,
+                            t.description,
+                            t.priority,
+                            t.dueDate,
+                            t.completed?"Completed":"Pending"
+                    });
+
+                }
+
             }
-        }
 
-        if (!found)
-            System.out.println("Task Not Found.");
+        });
+
+        btnRefresh.addActionListener(e->refreshTable());
+
     }
 
-    static void saveTasks() {
+    void clearFields(){
 
-        try {
+        txtId.setText("");
+        txtName.setText("");
+        txtDesc.setText("");
+        txtPriority.setText("");
+        txtDate.setText("");
 
-            PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME));
+    }
 
-            for (Task t : tasks) {
+    void refreshTable(){
+
+        model.setRowCount(0);
+
+        for(Task t:tasks){
+
+            model.addRow(new Object[]{
+
+                    t.id,
+                    t.name,
+                    t.description,
+                    t.priority,
+                    t.dueDate,
+                    t.completed?"Completed":"Pending"
+
+            });
+
+        }
+
+    }
+
+    void saveTasks(){
+
+        try{
+
+            PrintWriter pw=new PrintWriter(new FileWriter(FILE_NAME));
+
+            for(Task t:tasks){
+
                 pw.println(t);
+
             }
 
             pw.close();
 
-        } catch (IOException e) {
+        }catch(Exception e){
 
-            System.out.println("Error Saving File.");
+            JOptionPane.showMessageDialog(this,"Error Saving");
+
         }
+
     }
 
-    static void loadTasks() {
+    void loadTasks(){
 
-        File file = new File(FILE_NAME);
+        File file=new File(FILE_NAME);
 
-        if (!file.exists())
+        if(!file.exists())
             return;
 
-        try {
+        try{
 
-            Scanner fileScanner = new Scanner(file);
+            BufferedReader br=new BufferedReader(new FileReader(file));
 
-            while (fileScanner.hasNextLine()) {
+            String line;
 
-                String[] data = fileScanner.nextLine().split(",");
+            while((line=br.readLine())!=null){
 
-                Task task = new Task(
-                        Integer.parseInt(data[0]),
-                        data[1],
-                        data[2],
-                        data[3],
-                        data[4],
-                        Boolean.parseBoolean(data[5]));
+                String[] d=line.split(",");
 
-                tasks.add(task);
+                tasks.add(new Task(
+
+                        Integer.parseInt(d[0]),
+                        d[1],
+                        d[2],
+                        d[3],
+                        d[4],
+                        Boolean.parseBoolean(d[5])
+
+                ));
+
             }
 
-            fileScanner.close();
+            br.close();
 
-        } catch (Exception e) {
+        }catch(Exception e){
 
-            System.out.println("Error Loading Tasks.");
+            JOptionPane.showMessageDialog(this,"Error Loading");
+
         }
+
+    }
+
+    public static void main(String[] args) {
+
+        SwingUtilities.invokeLater(() -> new Main().setVisible(true));
     }
 }
